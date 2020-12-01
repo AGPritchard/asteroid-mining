@@ -5,13 +5,11 @@ signal update_fuel(fuel)
 export(float) var thrust_strength := 150.0
 export(float) var rotational_thrust_strength := 1.5
 export(float) var fuel_delta := 0.75
-export(float) var fuel_rotational_factor := 0.5
 export(float) var fuel_replenishment_rate := 0.25
 export(float) var thruster_reboot_time := 2
 
 var velocity := Vector2.ZERO
 var acceleration := Vector2.ZERO
-var rotation_direction := 0.0
 
 var can_thrust := true
 var fuel := 100.0
@@ -20,37 +18,36 @@ func _ready() -> void:
 	$ThrusterRebootTimer.wait_time = thruster_reboot_time
 
 func _physics_process(delta: float) -> void:
-	# reset move variables
+	# reset move variable(s)
 	acceleration = Vector2.ZERO
-	rotation_direction = 0.0
 	
 	if fuel > 0:
 		if can_thrust:
 			# handle input
 			if Input.is_action_pressed("thrust_forward"):
-				acceleration = (Vector2.UP * thrust_strength).rotated(rotation)
+				acceleration = (Vector2.RIGHT * thrust_strength).rotated(rotation)
 				fuel -= fuel_delta
 				$BackThruster.emitting = true
 			else:
 				$BackThruster.emitting = false
 			
 			if Input.is_action_pressed("thrust_backward"):
-				acceleration = (Vector2.DOWN * thrust_strength).rotated(rotation)
+				acceleration = (Vector2.LEFT * thrust_strength).rotated(rotation)
 				fuel -= fuel_delta
 				$FrontThruster.emitting = true
 			else:
 				$FrontThruster.emitting = false
 			
 			if Input.is_action_pressed("thrust_left"):
-				acceleration = (Vector2.LEFT * thrust_strength).rotated(rotation)
-				fuel -= fuel_delta * fuel_rotational_factor
+				acceleration = (Vector2.UP * thrust_strength).rotated(rotation)
+				fuel -= fuel_delta
 				$LeftThruster.emitting = true
 			else:
 				$LeftThruster.emitting = false
 			
 			if Input.is_action_pressed("thrust_right"):
-				acceleration = (Vector2.RIGHT * thrust_strength).rotated(rotation)
-				fuel -= fuel_delta * fuel_rotational_factor
+				acceleration = (Vector2.DOWN * thrust_strength).rotated(rotation)
+				fuel -= fuel_delta
 				$RightThruster.emitting = true
 			else:
 				$RightThruster.emitting = false
@@ -65,8 +62,18 @@ func _physics_process(delta: float) -> void:
 		$LeftThruster.emitting = false
 		$RightThruster.emitting = false
 	
-	# movement
-#	rotation += rotation_direction * rotational_thrust_strength * delta
+	# handle looking
+	var vertical_look := Input.get_action_strength("look_backward") - Input.get_action_strength("look_forward")
+	var horizontal_look := Input.get_action_strength("look_right") - Input.get_action_strength("look_left")
+	var look_direction := Vector2(horizontal_look, vertical_look)
+	
+	# if right stick is used then look with that, otherwise look with the mouse
+	if look_direction.length() > 0:
+		rotation = look_direction.angle()
+	else:
+		look_at(get_global_mouse_position())
+	
+	# apply velocity
 	velocity += acceleration * delta
 	velocity = move_and_slide(velocity)
 	

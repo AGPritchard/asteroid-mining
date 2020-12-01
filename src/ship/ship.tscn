@@ -18,31 +18,31 @@ shape = SubResource( 1 )
 
 [node name="RayCast2D" type="RayCast2D" parent="."]
 enabled = true
-cast_to = Vector2( 0, -50 )
+cast_to = Vector2( 50, 0 )
 
 [node name="BackThruster" type="Particles2D" parent="."]
-position = Vector2( 0, 18 )
+position = Vector2( -18, 0 )
+rotation = 1.5708
 emitting = false
 amount = 50
 process_material = ExtResource( 3 )
 
 [node name="FrontThruster" type="Particles2D" parent="."]
-position = Vector2( 0, -18 )
-rotation = 3.14159
-emitting = false
-amount = 50
-process_material = ExtResource( 3 )
-
-[node name="LeftThruster" type="Particles2D" parent="."]
 position = Vector2( 18, 0 )
 rotation = -1.5708
 emitting = false
 amount = 50
 process_material = ExtResource( 3 )
 
+[node name="LeftThruster" type="Particles2D" parent="."]
+position = Vector2( 0, -18 )
+rotation = 3.14159
+emitting = false
+amount = 50
+process_material = ExtResource( 3 )
+
 [node name="RightThruster" type="Particles2D" parent="."]
-position = Vector2( -18, 0 )
-rotation = 1.5708
+position = Vector2( 0, 18 )
 emitting = false
 amount = 50
 process_material = ExtResource( 3 )
