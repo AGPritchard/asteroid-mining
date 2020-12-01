@@ -41,16 +41,16 @@ func _physics_process(delta: float) -> void:
 			if Input.is_action_pressed("thrust_left"):
 				acceleration = (Vector2.UP * thrust_strength).rotated(rotation)
 				fuel -= fuel_delta
-				$LeftThruster.emitting = true
+				$RightThruster.emitting = true
 			else:
-				$LeftThruster.emitting = false
+				$RightThruster.emitting = false
 			
 			if Input.is_action_pressed("thrust_right"):
 				acceleration = (Vector2.DOWN * thrust_strength).rotated(rotation)
 				fuel -= fuel_delta
-				$RightThruster.emitting = true
+				$LeftThruster.emitting = true
 			else:
-				$RightThruster.emitting = false
+				$LeftThruster.emitting = false
 	else:
 		# start thruster reboot timer
 		can_thrust = false
