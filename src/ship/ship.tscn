@@ -46,3 +46,7 @@ rotation = 1.5708
 emitting = false
 amount = 50
 process_material = ExtResource( 3 )
+
+[node name="ThrusterRebootTimer" type="Timer" parent="."]
+one_shot = true
+[connection signal="timeout" from="ThrusterRebootTimer" to="." method="_on_ThrusterRebootTimer_timeout"]
