@@ -2,7 +2,7 @@ extends KinematicBody2D
 
 signal update_fuel(fuel)
 
-export(float) var thrust_strength := 200.0
+export(float) var thrust_strength := 150.0
 export(float) var rotational_thrust_strength := 1.5
 export(float) var fuel_delta := 0.75
 export(float) var fuel_rotational_factor := 0.5
@@ -26,7 +26,7 @@ func _physics_process(delta: float) -> void:
 	
 	if fuel > 0:
 		if can_thrust:
-			# foward and backward input
+			# handle input
 			if Input.is_action_pressed("thrust_forward"):
 				acceleration = (Vector2.UP * thrust_strength).rotated(rotation)
 				fuel -= fuel_delta
@@ -40,17 +40,16 @@ func _physics_process(delta: float) -> void:
 				$FrontThruster.emitting = true
 			else:
 				$FrontThruster.emitting = false
-
-			# handle rotation input
+			
 			if Input.is_action_pressed("thrust_left"):
-				rotation_direction = -1.0
+				acceleration = (Vector2.LEFT * thrust_strength).rotated(rotation)
 				fuel -= fuel_delta * fuel_rotational_factor
 				$LeftThruster.emitting = true
 			else:
 				$LeftThruster.emitting = false
 			
 			if Input.is_action_pressed("thrust_right"):
-				rotation_direction = 1.0
+				acceleration = (Vector2.RIGHT * thrust_strength).rotated(rotation)
 				fuel -= fuel_delta * fuel_rotational_factor
 				$RightThruster.emitting = true
 			else:
@@ -67,7 +66,7 @@ func _physics_process(delta: float) -> void:
 		$RightThruster.emitting = false
 	
 	# movement
-	rotation += rotation_direction * rotational_thrust_strength * delta
+#	rotation += rotation_direction * rotational_thrust_strength * delta
 	velocity += acceleration * delta
 	velocity = move_and_slide(velocity)
 	

@@ -34,14 +34,14 @@ amount = 50
 process_material = ExtResource( 3 )
 
 [node name="LeftThruster" type="Particles2D" parent="."]
-position = Vector2( 18, -10 )
+position = Vector2( 18, 0 )
 rotation = -1.5708
 emitting = false
 amount = 50
 process_material = ExtResource( 3 )
 
 [node name="RightThruster" type="Particles2D" parent="."]
-position = Vector2( -18, -10 )
+position = Vector2( -18, 0 )
 rotation = 1.5708
 emitting = false
 amount = 50
