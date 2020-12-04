@@ -99,15 +99,14 @@ const CONTOUR_LINES = [
 
 # shape settings
 export(int) var number_of_circles := 5
-export(float) var maximum_radius := 105.0
-export(float) var minimum_radius := 15.0
-export(float) var radius_delta := 15.0
+export(float) var maximum_radius := 96.0
+export(float) var minimum_radius := 16.0
+export(float) var radius_delta := 16.0
 
-export(int) var width := 20
-export(int) var height := 20
+export(int) var width := 64
+export(int) var height := 64
 export(float) var threshold := 0.01
 
-var noise := OpenSimplexNoise.new()
 var scalar_field := PoolIntArray([])
 var bit_field := PoolIntArray([])
 
@@ -118,18 +117,16 @@ var radius := maximum_radius
 # Built-in Function(s)
 # ----------------------------
 func _ready() -> void:
+	# TEMP
+	$Camera2D.offset = Vector2(10 * (width / 2), 10 * (height / 2))
+	
 	randomize()
-	noise.seed = randi()
 	
 	_create_circles()
-	_init_noise()
 	_populate_scalar_field()
 	_compose_bit_field()
 	_create_polygon()
-
-	print(circles)
 	
-
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		if event.scancode == KEY_SPACE and event.is_pressed():
@@ -137,8 +134,6 @@ func _input(event: InputEvent) -> void:
 			bit_field = PoolIntArray([])
 			circles = []
 			radius = maximum_radius
-			
-			noise.seed = randi()
 			
 			_create_circles()
 			_populate_scalar_field()
@@ -159,12 +154,15 @@ func _draw() -> void:
 		for c in circles:
 			draw_circle(c["pos"], c["radius"], Color(randf(), randf(), randf(), 0.5))
 
+
 # ----------------------------
 # Marching Squares Functions
 # ----------------------------
 func _create_circles() -> void:
+	var offset = Vector2(10 * (width / 2), 10 * (height / 2))
+	
 	# create main circle
-	var circle = {"pos": Vector2.ZERO, "radius": radius}
+	var circle = {"pos": offset, "radius": radius}
 	circles.append(circle)
 	radius -= radius_delta
 	
@@ -186,19 +184,17 @@ func _create_circles() -> void:
 		if radius <= minimum_radius:
 			break
 
-func _init_noise() -> void:
-	noise.octaves = 3
-	noise.period = 48.0
-	noise.persistence = 0.8
-
-# TODO: update to generate a more asteroid-y shape
 func _populate_scalar_field() -> void:
 	for x in width:
 		for y in height:
-			var value := noise.get_noise_2d(x, y)
-			if value >= threshold:
-				scalar_field.append(1)
-			else:
+			var within_circle := false
+			for c in circles:
+				var distance_to_circle = (Vector2(x, y) * 10).distance_to(c["pos"])
+				if distance_to_circle < c["radius"]:
+					scalar_field.append(1)
+					within_circle = true
+					break
+			if !within_circle:
 				scalar_field.append(0)
 
 func _compose_bit_field() -> void:
@@ -226,12 +222,13 @@ func _create_polygon() -> void:
 	for i in range(1, bit_field.size(), 1):
 		if bit_field[i] == 0 or bit_field[i] == 5 or bit_field[i] == 10:
 			continue
-		
+
 		var polygon := _create_polygon_section(bit_field[i], _index_to_coord(i))
 		merged_polygon = Geometry.merge_polygons_2d(merged_polygon[0], polygon)
-	
+
 	$CollisionPolygon2D.polygon = merged_polygon[0]
 	$Polygon2D.polygon = merged_polygon[0]
+
 
 func _create_polygon_section(bit_value: int, offset: Vector2) -> PoolVector2Array:
 	var polygon := PoolVector2Array([])
