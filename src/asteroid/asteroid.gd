@@ -3,7 +3,8 @@ extends StaticBody2D
 
 signal break_up(pos)
 
-const contour_lines = [
+const DEBUG := true
+const CONTOUR_LINES = [
 	Vector2.ZERO,				# 0
 	
 	PoolVector2Array([			# 1
@@ -96,6 +97,12 @@ const contour_lines = [
 		Vector2(1.0, 1.0),
 		Vector2(0.0, 1.0)])]
 
+# shape settings
+export(int) var number_of_circles := 5
+export(float) var maximum_radius := 105.0
+export(float) var minimum_radius := 15.0
+export(float) var radius_delta := 15.0
+
 export(int) var width := 20
 export(int) var height := 20
 export(float) var threshold := 0.01
@@ -104,6 +111,8 @@ var noise := OpenSimplexNoise.new()
 var scalar_field := PoolIntArray([])
 var bit_field := PoolIntArray([])
 
+var circles := []
+var radius := maximum_radius
 
 # ----------------------------
 # Built-in Function(s)
@@ -112,36 +121,71 @@ func _ready() -> void:
 	randomize()
 	noise.seed = randi()
 	
+	_create_circles()
 	_init_noise()
 	_populate_scalar_field()
 	_compose_bit_field()
 	_create_polygon()
+
+	print(circles)
+	
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		if event.scancode == KEY_SPACE and event.is_pressed():
 			scalar_field = PoolIntArray([])
 			bit_field = PoolIntArray([])
+			circles = []
+			radius = maximum_radius
 			
 			noise.seed = randi()
 			
+			_create_circles()
 			_populate_scalar_field()
 			_compose_bit_field()
 			_create_polygon()
 			update()
 
 func _draw() -> void:
-	# draw scalar field points
-	for i in scalar_field.size():
-		if scalar_field[i] == 1:
-			draw_circle(_index_to_coord_full(i) * 10, 2, Color.white)
-		else:
-			draw_circle(_index_to_coord_full(i) * 10, 2, Color.black)
-
+	if DEBUG:
+		# debug - draw scalar field points
+		for i in scalar_field.size():
+			if scalar_field[i] == 1:
+				draw_circle(_index_to_coord_full(i) * 10, 2, Color.white)
+			else:
+				draw_circle(_index_to_coord_full(i) * 10, 2, Color.black)
+		
+		# debug - draw asteroid circles
+		for c in circles:
+			draw_circle(c["pos"], c["radius"], Color(randf(), randf(), randf(), 0.5))
 
 # ----------------------------
 # Marching Squares Functions
 # ----------------------------
+func _create_circles() -> void:
+	# create main circle
+	var circle = {"pos": Vector2.ZERO, "radius": radius}
+	circles.append(circle)
+	radius -= radius_delta
+	
+	for i in number_of_circles:
+		# find point on last circle's circumference
+		var pos := Vector2.ZERO
+		var random_circle = circles.back()
+		var angle := rand_range(0, 2 * PI)
+		var x: float = random_circle["pos"].x + random_circle["radius"] * cos(angle)
+		var y: float = random_circle["pos"].y + random_circle["radius"] * sin(angle)
+		pos = Vector2(x, y)
+		
+		# create circle
+		circle = {"pos": pos, "radius": radius}
+		circles.append(circle)
+		
+		# decrease radius and exit loop early if radius is smaller than minimum radius
+		radius -= radius_delta
+		if radius <= minimum_radius:
+			break
+
 func _init_noise() -> void:
 	noise.octaves = 3
 	noise.period = 48.0
@@ -192,7 +236,7 @@ func _create_polygon() -> void:
 func _create_polygon_section(bit_value: int, offset: Vector2) -> PoolVector2Array:
 	var polygon := PoolVector2Array([])
 	
-	var points = contour_lines[bit_value]
+	var points = CONTOUR_LINES[bit_value]
 	for p in points:
 		polygon.append((p + offset) * 10)
 	
