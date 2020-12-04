@@ -96,6 +96,7 @@ const CONTOUR_LINES = [
 		Vector2(1.0, 0.0),
 		Vector2(1.0, 1.0),
 		Vector2(0.0, 1.0)])]
+const POINT_DISTANCE := 10
 
 # shape settings
 export(int) var number_of_circles := 5
@@ -113,20 +114,24 @@ var bit_field := PoolIntArray([])
 var circles := []
 var radius := maximum_radius
 
+var indices_visited = []
+var polygons_to_be_merged = []
+
 # ----------------------------
 # Built-in Function(s)
 # ----------------------------
 func _ready() -> void:
-	# TEMP
-	$Camera2D.offset = Vector2(10 * (width / 2), 10 * (height / 2))
-	
 	randomize()
 	
 	_create_circles()
 	_populate_scalar_field()
 	_compose_bit_field()
-	_create_polygon()
 	
+	_polygon_fill(2048)
+	var merged_polygon := _merge_polygons()
+	$CollisionPolygon2D.set_polygon(merged_polygon[0])
+	$Polygon2D.set_polygon(merged_polygon[0])
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		if event.scancode == KEY_SPACE and event.is_pressed():
@@ -138,7 +143,13 @@ func _input(event: InputEvent) -> void:
 			_create_circles()
 			_populate_scalar_field()
 			_compose_bit_field()
-			_create_polygon()
+			
+			indices_visited = []
+			polygons_to_be_merged = []
+			_polygon_fill(2048)
+			var merged_polygon := _merge_polygons()
+			$CollisionPolygon2D.set_polygon(merged_polygon[0])
+			$Polygon2D.set_polygon(merged_polygon[0])
 			update()
 
 func _draw() -> void:
@@ -146,20 +157,20 @@ func _draw() -> void:
 		# debug - draw scalar field points
 		for i in scalar_field.size():
 			if scalar_field[i] == 1:
-				draw_circle(_index_to_coord_full(i) * 10, 2, Color.white)
+				draw_circle(_index_to_coord_full(i) * POINT_DISTANCE, 2, Color.white)
 			else:
-				draw_circle(_index_to_coord_full(i) * 10, 2, Color.black)
+				draw_circle(_index_to_coord_full(i) * POINT_DISTANCE, 2, Color.black)
 		
 		# debug - draw asteroid circles
 		for c in circles:
-			draw_circle(c["pos"], c["radius"], Color(randf(), randf(), randf(), 0.5))
+			draw_circle(c["pos"], c["radius"], Color(randf(), randf(), randf(), 0.1))
 
 
 # ----------------------------
 # Marching Squares Functions
 # ----------------------------
 func _create_circles() -> void:
-	var offset = Vector2(10 * (width / 2), 10 * (height / 2))
+	var offset = Vector2(POINT_DISTANCE * (width / 2), POINT_DISTANCE * (height / 2))
 	
 	# create main circle
 	var circle = {"pos": offset, "radius": radius}
@@ -189,7 +200,7 @@ func _populate_scalar_field() -> void:
 		for y in height:
 			var within_circle := false
 			for c in circles:
-				var distance_to_circle = (Vector2(x, y) * 10).distance_to(c["pos"])
+				var distance_to_circle = (Vector2(x, y) * POINT_DISTANCE).distance_to(c["pos"])
 				if distance_to_circle < c["radius"]:
 					scalar_field.append(1)
 					within_circle = true
@@ -212,30 +223,33 @@ func _compose_bit_field() -> void:
 			# set bit value in bit field
 			bit_field.append(bit_value)
 
-# TODO: fix issue where during iteration a polygon section can't be connected to the main merged polygon - however,
-#	that polygon section is part of the main polygon
-#	maybe use a flood-fill inspired algorithm?
-#	need to think about when an asteroid is split up (flood fill to determine the different asteroid parts? -> then
-#		create as many CollisionPolygon2Ds and Polygon2Ds as needed?)
-func _create_polygon() -> void:
-	var merged_polygon := [_create_polygon_section(bit_field[0], _index_to_coord(0))]
-	for i in range(1, bit_field.size(), 1):
-		if bit_field[i] == 0 or bit_field[i] == 5 or bit_field[i] == 10:
-			continue
+func _polygon_fill(index: int) -> void:
+	if bit_field[index] == 0:
+		return
+	if indices_visited.has(index):
+		return
+	
+	var polygon := _create_polygon_section(bit_field[index], _index_to_coord(index))
+	polygons_to_be_merged.append(polygon)
+	indices_visited.append(index)
+	
+	_polygon_fill(index - 1)
+	_polygon_fill(index + 1)
+	_polygon_fill(index - width)
+	_polygon_fill(index + width)
 
-		var polygon := _create_polygon_section(bit_field[i], _index_to_coord(i))
-		merged_polygon = Geometry.merge_polygons_2d(merged_polygon[0], polygon)
+func _merge_polygons() -> Array:
+	var merged_polygon := [polygons_to_be_merged.front()]
+	for p in polygons_to_be_merged:
+		merged_polygon = Geometry.merge_polygons_2d(merged_polygon[0], p)
+	return merged_polygon
 
-	$CollisionPolygon2D.polygon = merged_polygon[0]
-	$Polygon2D.polygon = merged_polygon[0]
-
-
-func _create_polygon_section(bit_value: int, offset: Vector2) -> PoolVector2Array:
+func _create_polygon_section(bit_value: int, pos: Vector2) -> PoolVector2Array:
 	var polygon := PoolVector2Array([])
 	
 	var points = CONTOUR_LINES[bit_value]
 	for p in points:
-		polygon.append((p + offset) * 10)
+		polygon.append((p + pos) * POINT_DISTANCE)
 	
 	return polygon
 

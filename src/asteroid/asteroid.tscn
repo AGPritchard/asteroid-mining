@@ -8,10 +8,5 @@
 script = ExtResource( 2 )
 
 [node name="Polygon2D" type="Polygon2D" parent="."]
-visible = false
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
-visible = false
-
-[node name="Camera2D" type="Camera2D" parent="."]
-current = true
