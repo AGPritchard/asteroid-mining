@@ -1,5 +1,7 @@
 extends KinematicBody2D
 
+const DEBUG := true
+
 signal update_fuel(fuel)
 
 export(float) var thrust_strength := 150.0
@@ -33,7 +35,7 @@ func _input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	# disable thrusters
-	if can_thrust and fuel <= 0:
+	if !DEBUG and can_thrust and fuel <= 0:
 		# start thruster reboot timer
 		can_thrust = false
 		$ThrusterRebootTimer.start()
@@ -45,7 +47,7 @@ func _process(_delta: float) -> void:
 		$RightThruster.emitting = false
 	
 	# replenish fuel
-	if fuel < 100.0:
+	if !DEBUG and fuel < 100.0:
 		fuel += fuel_replenishment_rate
 
 	# emit signals
@@ -60,7 +62,10 @@ func _physics_process(delta: float) -> void:
 	_look()
 	
 	# apply velocity
-	velocity += acceleration * delta
+	if DEBUG:
+		velocity = acceleration
+	else:
+		velocity += acceleration * delta
 	velocity = move_and_slide(velocity)
 	
 
