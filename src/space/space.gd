@@ -1,26 +1,33 @@
 extends Node2D
 
-# TODO: add cargo functionality
-# TODO: add drop off zone
-# TODO: add conversion of dropped off cargo to credit
-
 var asteroid_scene := preload("res://src/asteroid/asteroid.tscn")
 
+var samples := PoolVector2Array([])
+
+# ----------------------------
+# Built-in Function(s)
+# ----------------------------
 func _ready() -> void:
+	randomize()
 	VisualServer.set_default_clear_color(Color8(4, 0, 20, 255))
+	
+	# place asteroids
+	samples = Sampling.poisson_disk_sampling(800.0, Vector2(2000, 2000), 30)
+	print(samples.size())
+	for s in samples:
+		var asteroid = asteroid_scene.instance()
+		asteroid.global_position = s
+		asteroid.add_to_group("asteroids")
+		add_child(asteroid)
 	
 	# connect signals
 	$Ship.connect("update_fuel", self, "_on_ship_update_fuel")
-	$Asteroid.connect("break_up", self, "_on_asteroid_break_up")
 
 func _process(_delta: float) -> void:
 	$FuelBar.set_global_position($Ship.global_position - Vector2(24, 50))
 
+# ----------------------------
+# Signal Funcions
+# ----------------------------
 func _on_ship_update_fuel(fuel: float) -> void:
 	$FuelBar.value = fuel
-
-func _on_asteroid_break_up(pos: Vector2) -> void:
-	var asteroid = asteroid_scene.instance()
-	asteroid.global_position = pos + (Vector2(rand_range(-1.0, 1.0), rand_range(-1.0, 1.0)) * 100.0)
-	asteroid.size = 1
-	add_child(asteroid)
