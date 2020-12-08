@@ -1,9 +1,12 @@
 class_name Asteroid
 extends StaticBody2D
 
-signal break_up(pos)
+const DEBUG_SETTINGS = {
+	"DRAW_CIRCLES": true,
+	"DRAW_SCALAR_FIELD": false,
+	"DRAW_BIT_FIELD": false,
+}
 
-const DEBUG := true
 const CONTOUR_LINES = [
 	Vector2.ZERO,				# 0
 	
@@ -99,78 +102,76 @@ const CONTOUR_LINES = [
 const POINT_DISTANCE := 10
 
 # shape settings
-export(int) var number_of_circles := 5
+export(int) var number_of_circles := 4
 export(float) var maximum_radius := 96.0
 export(float) var minimum_radius := 16.0
 export(float) var radius_delta := 16.0
 
+# field dimensions
 export(int) var width := 64
 export(int) var height := 64
-export(float) var threshold := 0.01
-
-var scalar_field := PoolIntArray([])
-var bit_field := PoolIntArray([])
 
 var circles := []
 var radius := maximum_radius
 
+var scalar_field := PoolIntArray([])
+var bit_field := PoolIntArray([])
+
 var indices_visited = []
-var polygons_to_be_merged = []
+var merged_polygon = [[Vector2.ZERO]]
 
 # ----------------------------
 # Built-in Function(s)
 # ----------------------------
 func _ready() -> void:
 	randomize()
-	
-	_create_circles()
+	_generate_shape()
 	_populate_scalar_field()
 	_compose_bit_field()
-	
-	_polygon_fill(2048)
-	var merged_polygon := _merge_polygons()
+	_polygon_fill(scalar_field.size() / 2)
 	$CollisionPolygon2D.set_polygon(merged_polygon[0])
 	$Polygon2D.set_polygon(merged_polygon[0])
 
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey:
-		if event.scancode == KEY_SPACE and event.is_pressed():
-			scalar_field = PoolIntArray([])
-			bit_field = PoolIntArray([])
-			circles = []
-			radius = maximum_radius
-			
-			_create_circles()
-			_populate_scalar_field()
-			_compose_bit_field()
-			
-			indices_visited = []
-			polygons_to_be_merged = []
-			_polygon_fill(2048)
-			var merged_polygon := _merge_polygons()
-			$CollisionPolygon2D.set_polygon(merged_polygon[0])
-			$Polygon2D.set_polygon(merged_polygon[0])
-			update()
-
 func _draw() -> void:
-	if DEBUG:
-		# debug - draw scalar field points
-		for i in scalar_field.size():
-			if scalar_field[i] == 1:
-				draw_circle(_index_to_coord_full(i) * POINT_DISTANCE, 2, Color.white)
-			else:
-				draw_circle(_index_to_coord_full(i) * POINT_DISTANCE, 2, Color.black)
-		
-		# debug - draw asteroid circles
+	# draw circles
+	if DEBUG_SETTINGS["DRAW_CIRCLES"]:
 		for c in circles:
 			draw_circle(c["pos"], c["radius"], Color(randf(), randf(), randf(), 0.1))
+	
+	# draw scalar field
+	if DEBUG_SETTINGS["DRAW_SCALAR_FIELD"]:
+		for i in scalar_field.size():
+			if scalar_field[i] == 1:
+				draw_circle(_index_to_coord(i, width, height) * POINT_DISTANCE, 2, Color(1.0, 1.0, 1.0, 0.5))
+			else:
+				draw_circle(_index_to_coord(i, width, height) * POINT_DISTANCE, 2, Color(0.0, 0.0, 0.0, 0.5))
+	
+	# draw bit field
+	if DEBUG_SETTINGS["DRAW_BIT_FIELD"]:
+		for i in bit_field.size():
+			var position := (_index_to_coord(i, width-1, height-1) * POINT_DISTANCE) + ((Vector2.ONE * POINT_DISTANCE) / 2)
+			match bit_field[i]:
+				0:
+					draw_circle(position, 1.0, Color.red)
+				15:
+					draw_circle(position, 1.0, Color.blue)
+				_:
+					draw_circle(position, 1.0, Color.green)
 
 
+# ----------------------------
+# Public Functions
+# ----------------------------
+func destruct(pos: Vector2) -> void:
+	pass
+
+	
 # ----------------------------
 # Marching Squares Functions
 # ----------------------------
-func _create_circles() -> void:
-	var offset = Vector2(POINT_DISTANCE * (width / 2), POINT_DISTANCE * (height / 2))
+func _generate_shape() -> void:
+	# get offset
+	var offset := Vector2(width / 2.0, height / 2.0) * POINT_DISTANCE
 	
 	# create main circle
 	var circle = {"pos": offset, "radius": radius}
@@ -179,15 +180,13 @@ func _create_circles() -> void:
 	
 	for i in number_of_circles:
 		# find point on last circle's circumference
-		var pos := Vector2.ZERO
-		var random_circle = circles.back()
-		var angle := rand_range(0, 2 * PI)
-		var x: float = random_circle["pos"].x + random_circle["radius"] * cos(angle)
-		var y: float = random_circle["pos"].y + random_circle["radius"] * sin(angle)
-		pos = Vector2(x, y)
+		var last_circle = circles.back()
+		var new_pos := Vector2(rand_range(-1.0, 1.0), rand_range(-1.0, 1.0))
+		new_pos *= last_circle["radius"]
+		new_pos += last_circle["pos"]
 		
-		# create circle
-		circle = {"pos": pos, "radius": radius}
+		# add circle
+		circle = {"pos": new_pos, "radius": radius}
 		circles.append(circle)
 		
 		# decrease radius and exit loop early if radius is smaller than minimum radius
@@ -196,17 +195,20 @@ func _create_circles() -> void:
 			break
 
 func _populate_scalar_field() -> void:
-	for x in width:
-		for y in height:
-			var within_circle := false
-			for c in circles:
-				var distance_to_circle = (Vector2(x, y) * POINT_DISTANCE).distance_to(c["pos"])
-				if distance_to_circle < c["radius"]:
-					scalar_field.append(1)
-					within_circle = true
-					break
-			if !within_circle:
-				scalar_field.append(0)
+	for i in width * height:
+		var within_circle := false
+		var scalar_position := _index_to_coord(i, width, height) * POINT_DISTANCE
+		
+		# check to see if the scalar point is within a circle
+		for c in circles:
+			var distance_to_circle := scalar_position.distance_to(c["pos"])
+			if distance_to_circle < c["radius"]:
+				scalar_field.append(1)			# 1 indicates 'on'
+				within_circle = true
+				break
+		
+		if !within_circle:
+			scalar_field.append(0)				# 0 indicates 'off'
 
 func _compose_bit_field() -> void:
 	for x in width - 1:
@@ -216,66 +218,42 @@ func _compose_bit_field() -> void:
 			var top_right_vertex := scalar_field[_coord_to_index(x + 1, y, width)]
 			var bottom_right_vertex := scalar_field[_coord_to_index(x + 1, y + 1, width)]
 			var bottom_left_vertex := scalar_field[_coord_to_index(x, y + 1, width)]
-			
+
 			# determine bit value from vertices
 			var bit_value := (8 * top_left_vertex) + (4 * top_right_vertex) + (2 * bottom_right_vertex) + (1 * bottom_left_vertex)
-			
+
 			# set bit value in bit field
 			bit_field.append(bit_value)
 
 func _polygon_fill(index: int) -> void:
-	if bit_field[index] == 0:
-		return
-	if indices_visited.has(index):
+	if bit_field[index] == 0 || index in indices_visited:
 		return
 	
-	var polygon := _create_polygon_section(bit_field[index], _index_to_coord(index))
-	polygons_to_be_merged.append(polygon)
+	var section := _create_polygon_section(bit_field[index], _index_to_coord(index, width-1, height-1))
+	merged_polygon = Geometry.merge_polygons_2d(merged_polygon[0], section)
 	indices_visited.append(index)
 	
-	_polygon_fill(index - 1)
-	_polygon_fill(index + 1)
-	_polygon_fill(index - width)
-	_polygon_fill(index + width)
-
-func _merge_polygons() -> Array:
-	var merged_polygon := [polygons_to_be_merged.front()]
-	for p in polygons_to_be_merged:
-		merged_polygon = Geometry.merge_polygons_2d(merged_polygon[0], p)
-	return merged_polygon
-
-func _create_polygon_section(bit_value: int, pos: Vector2) -> PoolVector2Array:
-	var polygon := PoolVector2Array([])
+	if index > 0 && index < bit_field.size():
+		_polygon_fill(index - 1)
+		_polygon_fill(index + 1)
+		_polygon_fill(index - width + 1)
+		_polygon_fill(index + width - 1)
+	
+func _create_polygon_section(bit_value: int, offset: Vector2) -> PoolVector2Array:
+	var section := PoolVector2Array([])
 	
 	var points = CONTOUR_LINES[bit_value]
 	for p in points:
-		polygon.append((p + pos) * POINT_DISTANCE)
+		section.append((p + offset) * POINT_DISTANCE)
 	
-	return polygon
+	return section
 
 
 # ----------------------------
 # Utility Functions
 # ----------------------------
+func _index_to_coord(index: int, w: int, h: int) -> Vector2:
+	return Vector2(index / w, index % h)
+
 func _coord_to_index(x: int, y: int, w: int) -> int:
 	return x * w + y
-
-func _index_to_coord(index: int) -> Vector2:
-	return Vector2(index / (width - 1), index % (height - 1))
-
-func _index_to_coord_full(index: int) -> Vector2:
-	return Vector2(index / width, index % height)
-
-func _print_2d_array(array: Array, row_size: int, col_size: int) -> void:
-	for i in col_size:
-		var row := []
-		for j in row_size:
-			row.append(array[_coord_to_index(j, i, row_size)])
-		print(row)
-
-
-# ----------------------------
-# Signal Funcions
-# ----------------------------
-func mine() -> void:
-	pass
