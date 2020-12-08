@@ -9,6 +9,7 @@ export(float) var rotational_thrust_strength := 1.5
 export(float) var fuel_delta := 0.75
 export(float) var fuel_replenishment_rate := 0.25
 export(float) var thruster_reboot_time := 2
+export(float) var drill_radius := 1.0
 
 var velocity := Vector2.ZERO
 var acceleration := Vector2.ZERO
@@ -45,7 +46,7 @@ func _process(_delta: float) -> void:
 		if $DrillPointer.is_colliding():
 			var collider = $DrillPointer.get_collider()
 			if collider is Asteroid:
-				collider.destruct($DrillPointer.get_collision_point(), 1.0)
+				collider.destruct($DrillPointer.get_collision_point(), drill_radius)
 				# TODO: animate drill piece + play sounds
 	
 	# emit signals
