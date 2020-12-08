@@ -23,16 +23,6 @@ var fuel := 100.0
 func _ready() -> void:
 	$ThrusterRebootTimer.wait_time = thruster_reboot_time
 
-func _input(event: InputEvent) -> void:
-	# interact with asteroid
-	if event is InputEventMouseButton:
-		if event.button_index == BUTTON_LEFT and event.is_pressed():
-			if $DrillPointer.is_colliding():
-				var collider = $DrillPointer.get_collider()
-				if collider is Asteroid:
-					collider.mine()
-					# TODO: animate drill piece + play sounds
-
 func _process(_delta: float) -> void:
 	# disable thrusters
 	if !DEBUG and can_thrust and fuel <= 0:
@@ -49,7 +39,15 @@ func _process(_delta: float) -> void:
 	# replenish fuel
 	if !DEBUG and fuel < 100.0:
 		fuel += fuel_replenishment_rate
-
+	
+	# interact with asteroid
+	if Input.is_action_pressed("drill"):
+		if $DrillPointer.is_colliding():
+			var collider = $DrillPointer.get_collider()
+			if collider is Asteroid:
+				collider.destruct($DrillPointer.get_collision_point(), 1.0)
+				# TODO: animate drill piece + play sounds
+	
 	# emit signals
 	emit_signal("update_fuel", fuel)
 

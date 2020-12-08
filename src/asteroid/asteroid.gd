@@ -162,8 +162,28 @@ func _draw() -> void:
 # ----------------------------
 # Public Functions
 # ----------------------------
-func destruct(pos: Vector2) -> void:
-	pass
+func destruct(pos: Vector2, radius: float) -> void:
+	# convert destruct position to scalar field coordinates
+	pos = to_local(pos) / POINT_DISTANCE
+	
+	# set scalar values to 'off' if within destruction circle
+	for i in scalar_field.size():
+		var point := _index_to_coord(i, width, height)
+		if Geometry.is_point_in_circle(point, pos, radius):
+			scalar_field[i] = 0
+	
+	# reset polygon data
+	bit_field = PoolIntArray([])
+	indices_visited = []
+	merged_polygon = [[Vector2.ZERO]]
+	
+	# recompose bit field
+	_compose_bit_field()
+
+	# fill polygon again
+	_polygon_fill(scalar_field.size() / 2)
+	$CollisionPolygon2D.set_polygon(merged_polygon[0])
+	$Polygon2D.set_polygon(merged_polygon[0])
 
 	
 # ----------------------------
@@ -257,3 +277,6 @@ func _index_to_coord(index: int, w: int, h: int) -> Vector2:
 
 func _coord_to_index(x: int, y: int, w: int) -> int:
 	return x * w + y
+
+func _coord_to_index_vector2(coord: Vector2, w: int) -> int:
+	return int(coord.x) * w + int(coord.y)
