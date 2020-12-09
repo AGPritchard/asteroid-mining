@@ -320,7 +320,7 @@ func _compose_bit_field() -> void:
 			# set bit value in bit field
 			if bit_value == 5 || bit_value == 10:
 				# TEMP: removes the need to sort out cases 5 and 10
-				bit_field.append(0)
+				bit_field.append(15)
 			else:
 				bit_field.append(bit_value)
 
