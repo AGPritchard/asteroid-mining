@@ -6,5 +6,3 @@
 "asteroid",
 ]]
 script = ExtResource( 2 )
-
-[node name="Polygons" type="Node2D" parent="."]

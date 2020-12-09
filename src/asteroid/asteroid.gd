@@ -6,7 +6,6 @@ const DEBUG_SETTINGS = {
 	"DRAW_SCALAR_FIELD": false,
 	"DRAW_BIT_FIELD": false,
 	"HIDE_POLYGON": false,
-	"HIDE_COLLISION_SHAPE": false,
 }
 
 const CONTOUR_LINES := [
@@ -192,6 +191,7 @@ var polygons := []
 var indices_visited := []
 var merged_polygon := [[Vector2.ZERO]]
 
+var asteroid_texture := preload("res://assets/asteroids/asteroid_test.png")
 
 # ----------------------------
 # Built-in Function(s)
@@ -350,10 +350,10 @@ func _create_polygons() -> void:
 		polygon_2d.set_polygon(p)
 		collision_polygon_2d.set_polygon(p)
 		
+		polygon_2d.texture = asteroid_texture
+		
 		if DEBUG_SETTINGS["HIDE_POLYGON"]:
 			polygon_2d.hide()
-		if DEBUG_SETTINGS["HIDE_COLLISION_SHAPE"]:
-			collision_polygon_2d.hide()
 		
 		add_child(polygon_2d)
 		add_child(collision_polygon_2d)	
