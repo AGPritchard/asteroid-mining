@@ -2,12 +2,14 @@ class_name Asteroid
 extends StaticBody2D
 
 const DEBUG_SETTINGS = {
-	"DRAW_CIRCLES": true,
+	"DRAW_CIRCLES": false,
 	"DRAW_SCALAR_FIELD": false,
 	"DRAW_BIT_FIELD": false,
+	"HIDE_POLYGON": false,
+	"HIDE_COLLISION_SHAPE": false,
 }
 
-const CONTOUR_LINES = [
+const CONTOUR_LINES := [
 	Vector2.ZERO,				# 0
 	
 	PoolVector2Array([			# 1
@@ -99,6 +101,75 @@ const CONTOUR_LINES = [
 		Vector2(1.0, 0.0),
 		Vector2(1.0, 1.0),
 		Vector2(0.0, 1.0)])]
+const VALID_NORTH_MOVES := {
+	0: [],
+	1: [],
+	2: [],
+	3: [],
+	4: [2, 6, 10, 14],
+	5: [2, 6, 10, 14],
+	6: [2, 10, 14],
+	7: [2, 6, 10, 14],
+	8: [1, 5, 9, 13],
+	9: [1, 5, 13],
+	10: [1, 5, 9, 13],
+	11: [1, 5, 9, 13],
+	12: [3, 7, 11, 15],
+	13: [3, 7, 11, 15],
+	14: [3, 7, 11, 15],
+	15: [3, 7, 11, 15]}
+const VALID_EAST_MOVES := {
+	0: [],
+	1: [],
+	2: [1, 3, 5, 7],
+	3: [1, 3, 5, 7],
+	4: [8, 10, 12, 14],
+	5: [8, 10, 12, 14],
+	6: [9, 11, 13, 15],
+	7: [9, 11, 13, 15],
+	8: [],
+	9: [],
+	10: [1, 3, 5, 7],
+	11: [1, 3, 5, 7],
+	12: [8, 10, 12, 14],
+	13: [8, 10, 12, 14],
+	14: [9, 11, 13, 15],
+	15: [9, 11, 13, 15]}
+const VALID_SOUTH_MOVES := {
+	0: [],
+	1: [8, 9, 10, 11],
+	2: [4, 5, 6, 7],
+	3: [12, 13, 14, 15],
+	4: [],
+	5: [8, 9, 10, 11],
+	6: [4, 5, 6, 7],
+	7: [12, 13, 14, 15],
+	8: [],
+	9: [8, 9, 10, 11],
+	10: [4, 5, 6, 7],
+	11: [12, 13, 14, 15],
+	12: [],
+	13: [8, 9, 10, 11],
+	14: [4, 5, 6, 7],
+	15: [12, 13, 14, 15]}
+const VALID_WEST_MOVES := {
+	0: [],
+	1: [2, 3, 10, 11],
+	2: [],
+	3: [2, 3, 10, 11],
+	4: [],
+	5: [2, 3, 10, 11],
+	6: [],
+	7: [2, 3, 10, 11],
+	8: [4, 5, 12, 13],
+	9: [6, 7, 14, 15],
+	10: [4, 5, 12, 13],
+	11: [6, 7, 14, 15],
+	12: [4, 5, 12, 13],
+	13: [6, 7, 14, 15],
+	14: [4, 5, 12, 13],
+	15: [6, 7, 14, 15]}
+
 const POINT_DISTANCE := 10
 
 # shape settings
@@ -117,8 +188,10 @@ var radius := maximum_radius
 var scalar_field := PoolIntArray([])
 var bit_field := PoolIntArray([])
 
-var indices_visited = []
-var merged_polygon = [[Vector2.ZERO]]
+var polygons := []
+var indices_visited := []
+var merged_polygon := [[Vector2.ZERO]]
+
 
 # ----------------------------
 # Built-in Function(s)
@@ -128,9 +201,7 @@ func _ready() -> void:
 	_generate_shape()
 	_populate_scalar_field()
 	_compose_bit_field()
-	_polygon_fill(scalar_field.size() / 2)
-	$CollisionPolygon2D.set_polygon(merged_polygon[0])
-	$Polygon2D.set_polygon(merged_polygon[0])
+	_create_polygons()
 
 func _draw() -> void:
 	# draw circles
@@ -172,8 +243,12 @@ func destruct(pos: Vector2, radius: float) -> void:
 		if Geometry.is_point_in_circle(point, pos, radius):
 			scalar_field[i] = 0
 	
+	if DEBUG_SETTINGS["DRAW_SCALAR_FIELD"]:
+		update()
+	
 	# reset polygon data
 	bit_field = PoolIntArray([])
+	polygons = []
 	indices_visited = []
 	merged_polygon = [[Vector2.ZERO]]
 	
@@ -181,9 +256,7 @@ func destruct(pos: Vector2, radius: float) -> void:
 	_compose_bit_field()
 
 	# fill polygon again
-	_polygon_fill(scalar_field.size() / 2)
-	$CollisionPolygon2D.set_polygon(merged_polygon[0])
-	$Polygon2D.set_polygon(merged_polygon[0])
+	_create_polygons()
 
 	
 # ----------------------------
@@ -230,6 +303,8 @@ func _populate_scalar_field() -> void:
 		if !within_circle:
 			scalar_field.append(0)				# 0 indicates 'off'
 
+# TODO: convert nested for-loop (x & y) to a single for-loop (i)
+# TODO: implement create polygon section functionality for cases 5 and 10
 func _compose_bit_field() -> void:
 	for x in width - 1:
 		for y in height - 1:
@@ -241,9 +316,47 @@ func _compose_bit_field() -> void:
 
 			# determine bit value from vertices
 			var bit_value := (8 * top_left_vertex) + (4 * top_right_vertex) + (2 * bottom_right_vertex) + (1 * bottom_left_vertex)
-
+			
 			# set bit value in bit field
-			bit_field.append(bit_value)
+			if bit_value == 5 || bit_value == 10:
+				# TEMP: removes the need to sort out cases 5 and 10
+				bit_field.append(0)
+			else:
+				bit_field.append(bit_value)
+
+# IDEA: rather than removing polygon nodes
+#		  keep track of polygon nodes and only remove polygon nodes if -
+#		  polygon_nodes.size() > polygons.size()
+func _create_polygons() -> void:
+	# remove polygon nodes
+	for c in get_children():
+		if c is Polygon2D || c is CollisionPolygon2D:
+			c.queue_free()
+	
+	# iterate bit field and fill all polygons
+	for i in bit_field.size():
+		if bit_field[i] == 0 || i in indices_visited:
+			continue
+		
+		_polygon_fill(i)
+		polygons.append(merged_polygon[0])
+		merged_polygon = [[Vector2.ZERO]]
+	
+	# create new polygon nodes and set polygon data
+	for p in polygons:
+		var polygon_2d := Polygon2D.new()
+		var collision_polygon_2d := CollisionPolygon2D.new()
+		
+		polygon_2d.set_polygon(p)
+		collision_polygon_2d.set_polygon(p)
+		
+		if DEBUG_SETTINGS["HIDE_POLYGON"]:
+			polygon_2d.hide()
+		if DEBUG_SETTINGS["HIDE_COLLISION_SHAPE"]:
+			collision_polygon_2d.hide()
+		
+		add_child(polygon_2d)
+		add_child(collision_polygon_2d)	
 
 func _polygon_fill(index: int) -> void:
 	if bit_field[index] == 0 || index in indices_visited:
@@ -254,10 +367,22 @@ func _polygon_fill(index: int) -> void:
 	indices_visited.append(index)
 	
 	if index > 0 && index < bit_field.size():
-		_polygon_fill(index - 1)
-		_polygon_fill(index + 1)
-		_polygon_fill(index - width + 1)
-		_polygon_fill(index + width - 1)
+		# get valid moves for each direction
+		var valid_north_moves = VALID_NORTH_MOVES[bit_field[index]]
+		var valid_east_moves = VALID_EAST_MOVES[bit_field[index]]
+		var valid_south_moves = VALID_SOUTH_MOVES[bit_field[index]]
+		var valid_west_moves = VALID_WEST_MOVES[bit_field[index]]
+
+		# if the next move is in the list of valid moves for the
+		# respective direction then continue _polygon_fill in that direction
+		if bit_field[index - 1] in valid_north_moves:
+			_polygon_fill(index - 1)
+		if bit_field[index + 1] in valid_south_moves:
+			_polygon_fill(index + 1)
+		if bit_field[index - width + 1] in valid_west_moves:
+			_polygon_fill(index - width + 1)
+		if bit_field[index + width - 1] in valid_east_moves:
+			_polygon_fill(index + width - 1)
 	
 func _create_polygon_section(bit_value: int, offset: Vector2) -> PoolVector2Array:
 	var section := PoolVector2Array([])

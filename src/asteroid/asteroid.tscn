@@ -7,6 +7,4 @@
 ]]
 script = ExtResource( 2 )
 
-[node name="Polygon2D" type="Polygon2D" parent="."]
-
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+[node name="Polygons" type="Node2D" parent="."]
