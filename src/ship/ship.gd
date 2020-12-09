@@ -9,7 +9,8 @@ export(float) var rotational_thrust_strength := 1.5
 export(float) var fuel_delta := 0.75
 export(float) var fuel_replenishment_rate := 0.25
 export(float) var thruster_reboot_time := 2
-export(float) var drill_radius := 1.0
+export(float) var drill_length := 30.0
+export(float) var drill_radius := 2.5
 
 var velocity := Vector2.ZERO
 var acceleration := Vector2.ZERO
@@ -23,6 +24,7 @@ var fuel := 100.0
 # --------------------
 func _ready() -> void:
 	$ThrusterRebootTimer.wait_time = thruster_reboot_time
+	$DrillPointer.cast_to = Vector2(drill_length, 0.0)
 
 func _process(_delta: float) -> void:
 	# disable thrusters

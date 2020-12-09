@@ -18,7 +18,7 @@ shape = SubResource( 1 )
 
 [node name="DrillPointer" type="RayCast2D" parent="."]
 enabled = true
-cast_to = Vector2( 50, 0 )
+cast_to = Vector2( 0, 0 )
 
 [node name="BackThruster" type="Particles2D" parent="."]
 position = Vector2( -18, 0 )
