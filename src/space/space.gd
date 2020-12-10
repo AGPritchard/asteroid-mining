@@ -25,6 +25,9 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	$FuelBar.set_global_position($Ship.global_position - Vector2(24, 50))
+	
+	# TEMP:
+	$Dust.global_position = $Ship/Camera2D.global_position
 
 # ----------------------------
 # Signal Funcions
