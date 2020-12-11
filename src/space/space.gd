@@ -4,12 +4,20 @@ var asteroid_scene := preload("res://src/asteroid/asteroid.tscn")
 
 var samples := PoolVector2Array([])
 
+# TODO: remove background asteroids as they leave sight -> spawn new ones in
+
 # ----------------------------
 # Built-in Function(s)
 # ----------------------------
 func _ready() -> void:
 	randomize()
 	VisualServer.set_default_clear_color(Color8(4, 0, 20, 255))
+	
+	# TEMP: set nebulae colours
+	$ParallaxBackground/Nebulae/Dust.material.set_shader_param("color_1", Vector3(randf(), randf(), randf()))
+	$ParallaxBackground/Nebulae/Dust.material.set_shader_param("color_2", Vector3(randf(), randf(), randf()))
+	$ParallaxBackground/Nebulae/Dust.material.set_shader_param("color_3", Vector3(randf(), randf(), randf()))
+	$ParallaxBackground/Nebulae/Dust.material.set_shader_param("color_4", Vector3(randf(), randf(), randf()))
 	
 	# place asteroids
 	samples = Sampling.poisson_disk_sampling(800.0, Vector2(2000, 2000), 30)
@@ -20,14 +28,22 @@ func _ready() -> void:
 		asteroid.add_to_group("asteroids")
 		add_child(asteroid)
 	
+	# TODO: spawn background asteroids
+	
 	# connect signals
 	$Ship.connect("update_fuel", self, "_on_ship_update_fuel")
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		# TEMP: update nebulae colours
+		if event.scancode == KEY_SPACE and event.pressed:
+			$ParallaxBackground/Nebulae/Dust.material.set_shader_param("color_1", Vector3(randf(), randf(), randf()))
+			$ParallaxBackground/Nebulae/Dust.material.set_shader_param("color_2", Vector3(randf(), randf(), randf()))
+			$ParallaxBackground/Nebulae/Dust.material.set_shader_param("color_3", Vector3(randf(), randf(), randf()))
+			$ParallaxBackground/Nebulae/Dust.material.set_shader_param("color_4", Vector3(randf(), randf(), randf()))
+
 func _process(_delta: float) -> void:
 	$FuelBar.set_global_position($Ship.global_position - Vector2(24, 50))
-	
-	# TEMP:
-	#$Dust.global_position = $Ship/Camera2D.global_position
 
 # ----------------------------
 # Signal Funcions

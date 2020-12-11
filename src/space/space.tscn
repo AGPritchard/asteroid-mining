@@ -35,12 +35,20 @@ __meta__ = {
 
 [node name="ParallaxBackground" type="ParallaxBackground" parent="."]
 
-[node name="ParallaxLayer" type="ParallaxLayer" parent="ParallaxBackground"]
+[node name="Nebulae" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2( 0.1, 0.1 )
 motion_mirroring = Vector2( 960, 640 )
 
-[node name="Dust" type="Sprite" parent="ParallaxBackground/ParallaxLayer"]
+[node name="Dust" type="Sprite" parent="ParallaxBackground/Nebulae"]
 material = SubResource( 1 )
 scale = Vector2( 30, 20 )
 z_index = -10
 texture = ExtResource( 3 )
 centered = false
+
+[node name="Stars" type="ParallaxLayer" parent="ParallaxBackground"]
+
+[node name="Planets" type="ParallaxLayer" parent="ParallaxBackground"]
+
+[node name="Asteroids" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2( 0.5, 0.5 )
