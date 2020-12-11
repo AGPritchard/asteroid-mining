@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://src/space/space.gd" type="Script" id=1]
 [ext_resource path="res://src/ship/ship.tscn" type="PackedScene" id=2]
 [ext_resource path="res://assets/asteroids/asteroid_test.png" type="Texture" id=3]
 [ext_resource path="res://src/shaders/dust.shader" type="Shader" id=4]
+[ext_resource path="res://src/space/background.gd" type="Script" id=5]
 
 [sub_resource type="ShaderMaterial" id=1]
 shader = ExtResource( 4 )
@@ -34,6 +35,7 @@ __meta__ = {
 }
 
 [node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+script = ExtResource( 5 )
 
 [node name="Nebulae" type="ParallaxLayer" parent="ParallaxBackground"]
 motion_scale = Vector2( 0.1, 0.1 )
