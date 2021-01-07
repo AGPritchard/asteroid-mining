@@ -324,9 +324,6 @@ func _compose_bit_field() -> void:
 			else:
 				bit_field.append(bit_value)
 
-# IDEA: rather than removing polygon nodes
-#		  keep track of polygon nodes and only remove polygon nodes if -
-#		  polygon_nodes.size() > polygons.size()
 func _create_polygons() -> void:
 	# remove polygon nodes
 	for c in get_children():

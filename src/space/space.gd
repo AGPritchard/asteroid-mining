@@ -13,10 +13,11 @@ func _ready() -> void:
 	VisualServer.set_default_clear_color(Color8(4, 0, 20, 255))
 	
 	# place asteroids
+	var offset := Vector2(200, 200)
 	samples = Sampling.poisson_disk_sampling(800.0, Vector2(2000, 2000), 30)
 	for s in samples:
 		var asteroid = asteroid_scene.instance()
-		asteroid.global_position = s
+		asteroid.global_position = s - offset
 		asteroid.add_to_group("asteroids")
 		add_child(asteroid)
 	

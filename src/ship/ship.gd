@@ -49,7 +49,6 @@ func _process(_delta: float) -> void:
 			var collider = $DrillPointer.get_collider()
 			if collider is Asteroid:
 				collider.destruct($DrillPointer.get_collision_point(), drill_radius)
-				# TODO: animate drill piece + play sounds
 	
 	# emit signals
 	emit_signal("update_fuel", fuel)
