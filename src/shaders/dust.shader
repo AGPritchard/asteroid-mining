@@ -69,5 +69,5 @@ void fragment() {
 				color_4,
 				clamp(r.x, 0.0, 1.0));
 	
-	COLOR = vec4((f*f*f + 0.6*f*f + 0.5*f) * color, 0.6);
+	COLOR = vec4((f*f*f + 0.6*f*f + 0.5*f) * color, 1.0);
 }

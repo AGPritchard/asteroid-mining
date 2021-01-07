@@ -191,7 +191,7 @@ var polygons := []
 var indices_visited := []
 var merged_polygon := [[Vector2.ZERO]]
 
-var asteroid_texture := preload("res://assets/asteroids/asteroid_test.png")
+var mineral_map := PoolIntArray([])
 
 # ----------------------------
 # Built-in Function(s)
@@ -349,8 +349,6 @@ func _create_polygons() -> void:
 		
 		polygon_2d.set_polygon(p)
 		collision_polygon_2d.set_polygon(p)
-		
-		polygon_2d.texture = asteroid_texture
 		
 		if DEBUG_SETTINGS["HIDE_POLYGON"]:
 			polygon_2d.hide()

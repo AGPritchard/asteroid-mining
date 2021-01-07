@@ -1,8 +1,9 @@
 extends Node2D
 
+var samples := PoolVector2Array([])
+
 var asteroid_scene := preload("res://src/asteroid/asteroid.tscn")
 
-var samples := PoolVector2Array([])
 
 # ----------------------------
 # Built-in Function(s)
