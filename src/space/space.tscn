@@ -24,6 +24,7 @@ current = true
 zoom = Vector2( 0.75, 0.75 )
 
 [node name="FuelBar" type="ProgressBar" parent="."]
+visible = false
 margin_left = -26.0
 margin_top = -40.0
 margin_right = 26.0
